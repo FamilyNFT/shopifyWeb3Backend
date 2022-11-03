@@ -17,8 +17,15 @@
   },
   "homepage": "https://github.com/FamillyLYX/shopifyWeb3Backend#readme",
   "dependencies": {
+    "@shopify/shopify-api": "^5.2.0",
+    "babel-plugin-graphql-js-client-transform": "^1.1.1",
     "cors": "^2.8.5",
+    "cross-fetch": "^3.1.5",
     "dotenv": "^16.0.3",
-    "express": "^4.18.1"
+    "express": "^4.18.1",
+    "graphql-js-client": "^0.12.0",
+    "graphql-request": "^5.0.0",
+    "request-promise": "^4.2.6",
+    "shopify-buy": "^2.16.1"
   }
 }
