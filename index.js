@@ -46,9 +46,7 @@ const client = ShopifyBuy.buildClient({
 //routes//
 app.get("/products", async (req, res) => {
   try {
-    console.log(123);
     let products = await client.product.fetchAll();
-    console.log(123);
 
     const getProductAggregate = async () => {
       let aggregate = [];
