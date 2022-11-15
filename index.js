@@ -1,14 +1,18 @@
-const express = require("express");
+import express from "express";
+import { GraphQLClient, gql } from "graphql-request";
+import request from "request-promise";
+import cors from "cors";
+import ShopifyBuy from "shopify-buy";
+import Shopify from "@shopify/shopify-api";
+import Headers from "cross-fetch";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
+
 const app = express();
-const { GraphQLClient, gql } = require("graphql-request");
-const cors = require("cors");
-const request = require("request-promise");
-const ShopifyBuy = require("shopify-buy");
-const Shopify = require("@shopify/shopify-api");
-const { Headers } = require("cross-fetch");
-require("dotenv").config();
+dotenv.config();
 const endpoint = "https://familylukso.myshopify.com/api/2022-04/graphql.json";
 
+global.fetch = fetch;
 global.Headers = global.Headers || Headers;
 //middlewares//
 app.use(cors({ origin: "http://localhost:3000" }));
@@ -42,7 +46,9 @@ const client = ShopifyBuy.buildClient({
 //routes//
 app.get("/products", async (req, res) => {
   try {
+    console.log(123);
     let products = await client.product.fetchAll();
+    console.log(123);
 
     const getProductAggregate = async () => {
       let aggregate = [];
