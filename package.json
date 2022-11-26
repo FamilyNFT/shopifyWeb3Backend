@@ -28,6 +28,7 @@
     "graphql-request": "^5.0.0",
     "node-fetch": "^3.3.0",
     "request-promise": "^4.2.6",
-    "shopify-buy": "^2.16.1"
+    "shopify-buy": "^2.16.1",
+    "stripe": "^11.0.0"
   }
 }

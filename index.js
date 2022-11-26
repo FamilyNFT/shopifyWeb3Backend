@@ -7,6 +7,10 @@ import Shopify from "@shopify/shopify-api";
 import Headers from "cross-fetch";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
+import Stripe from "stripe";
+const stripe = Stripe(
+  "pk_test_51HoMQ5HXVRKq6nBPDzhWi68QuxuGVSjWJuNG02l5YeraCBox0NYYoNara89XEDVTw4rq3yqT5ALciuVyKVP1Fh9Q0042HxRsQW"
+);
 
 const app = express();
 dotenv.config();
@@ -74,7 +78,6 @@ app.post("/checkout", async (req, res) => {
   let jsonBody = req.body;
   const id = jsonBody.id;
   let checkout = await client.checkout.create();
-  res.json(checkout);
   const lineItemsToAdd = [
     {
       variantId: id,
@@ -92,6 +95,15 @@ app.post("/checkout", async (req, res) => {
 app.post("/checkout/complete", async (req, res) => {
   const { id, billingAddress } = req.body;
   let checkout = await client.checkout.fetch(id);
+
+  const token = await stripe.tokens.create({
+    card: {
+      number: "4242424242424242",
+      exp_month: 11,
+      exp_year: 2023,
+      cvc: "314",
+    },
+  });
   let data = {
     firstName: "John",
     lastName: "Doe",
@@ -101,6 +113,7 @@ app.post("/checkout/complete", async (req, res) => {
     city: "Montreal",
     zip: "H3K0X2",
   };
+
   const variables = {
     checkoutId: id,
     payment: {
@@ -111,17 +124,33 @@ app.post("/checkout/complete", async (req, res) => {
       idempotencyKey: "123",
       billingAddress: billingAddress,
       type: "STRIPE_VAULT_TOKEN",
-      paymentData: "tok_1Ejt4eLgiPhRqvr3SQdtLvSW",
+      paymentData: token.id,
     },
   };
-  storeClient
-    .query({
-      data: {
-        query: `mutation checkoutCompleteWithTokenizedPaymentV3( $checkoutId: ID! $payment: TokenizedPaymentInputV3! ) { checkoutCompleteWithTokenizedPaymentV3( checkoutId: $checkoutId payment: $payment ) { checkout { id } checkoutUserErrors { code field message } payment { id } } } `,
-        variables: variables,
-      },
-    })
-    .then((data) => console.log(data));
+  let shippingRates = await graphqlClient.query({
+    data: `query { node(id: "gid://shopify/Checkout/7e9b3511d30997c531a6413bc273885b?key=cc8d8812f127eaf51b3ac2468d467984") { ... on Checkout { id webUrl availableShippingRates { ready shippingRates { handle priceV2 { amount } title } } } } }`,
+  });
+  res.json(shippingRates);
+  // storeClient
+  //   .query({
+  //     data: {
+  //       query: `mutation checkoutShippingLineUpdate($checkoutId: ID!, $shippingRateHandle: String!) { checkoutShippingLineUpdate(checkoutId: $checkoutId, shippingRateHandle: $shippingRateHandle) { checkout { id } checkoutUserErrors { code field message } } }`,
+  //       variables: {
+  //         checkoutId: id,
+  //         shippingRateHandle: "custom",
+  //       },
+  //     },
+  //   })
+  //   .then((data) => res.json([data]));
+
+  // storeClient
+  //   .query({
+  //     data: {
+  //       query: `mutation checkoutCompleteWithTokenizedPaymentV3( $checkoutId: ID! $payment: TokenizedPaymentInputV3! ) { checkoutCompleteWithTokenizedPaymentV3( checkoutId: $checkoutId payment: $payment ) { checkout { id } checkoutUserErrors { code field message } payment { id } } } `,
+  //       variables: variables,
+  //     },
+  //   })
+  //   .then((data) => res.json([data]));
 });
 
 app.post("/checkout/update", async (req, res) => {
