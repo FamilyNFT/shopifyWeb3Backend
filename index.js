@@ -20,13 +20,22 @@ const endpoint = "https://familylukso.myshopify.com/api/2022-04/graphql.json";
 global.fetch = fetch;
 global.Headers = global.Headers || Headers;
 //middlewares//
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "https://familylyx.com",
+      "https://family-frontend-delta.vercel.app",
+    ],
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Constants//
 const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 const STOREFRONT_TOKEN = process.env.STOREFRONT_TOKEN;
+const PORT = process.env.PORT || 8080;
 
 //shopify client
 const gqlClient = new GraphQLClient(endpoint, {
@@ -262,4 +271,4 @@ app.post("/checkout/update", async (req, res) => {
   }
 });
 
-app.listen(8080, () => console.log("App is listening at port 8080"));
+app.listen(PORT, () => console.log("App is listening at port 8080"));
