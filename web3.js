@@ -7,6 +7,7 @@ dotenv.config();
 
 const PINATA_SECRET = process.env.PINATA_SECRET;
 const PINATA_KEY = process.env.PINATA_KEY;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 const pinata = new PinataClient(PINATA_KEY, PINATA_SECRET);
 // const web3 = new Web3("https://rpc.l16.lukso.network/");
@@ -15,7 +16,7 @@ const web3 = new Web3("https://rpc.ankr.com/eth_goerli");
 //   "0xc2bd836122e9886b39d77d2865e434daeb08fd6e9a040a124b6174676d2a2231"
 // );
 const myAccount = web3.eth.accounts.privateKeyToAccount(
-  "0xd81031a9dbfd0487533a549150d3f4288d65ac497e8dc314c41094e9817cd39f"
+  PRIVATE_KEY
 );
 
 web3.eth.accounts.wallet.add(myAccount.privateKey);
