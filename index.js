@@ -8,8 +8,9 @@ import Headers from "cross-fetch";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import Stripe from "stripe";
+import { mintWallet } from "./web3.js";
 const stripe = Stripe(
-  "pk_test_51HoMQ5HXVRKq6nBPDzhWi68QuxuGVSjWJuNG02l5YeraCBox0NYYoNara89XEDVTw4rq3yqT5ALciuVyKVP1Fh9Q0042HxRsQW"
+  "sk_test_51M9pWNA9mNbyjY0WqUGvSuyMJi00IfvDX72Vqz2ZBwVRsvr0RIJ0bxlXDnFT23TOeclOrBu7gmFzT3a37NPvjWZs00l77iSupH"
 );
 
 const app = express();
@@ -55,10 +56,12 @@ app.get("/products", async (req, res) => {
     const getProductAggregate = async () => {
       let aggregate = [];
       for (let product of products) {
-        // let product = products[index];
-        // console.log(index);
+        let productID = `"gid:\/\/shopify\/Product\/${
+          product?.id.split("/")[4]
+        }"`;
+        console.log(productID);
         const data = await graphqlClient.query({
-          data: `query { product(id: "gid:\/\/shopify\/Product\/7798325051543") { title media(first: 5) { edges { node { ...fieldsForMediaTypes } } } } } fragment fieldsForMediaTypes on Media { alt mediaContentType preview { image { id altText originalSrc } } status ... on Video { id sources { format height mimeType url width } originalSource { format height mimeType url width } } ... on ExternalVideo { id host embeddedUrl } ... on Model3d { sources { format mimeType url } originalSource { format mimeType url } } ... on MediaImage { id image { altText originalSrc } } }`,
+          data: `query { product(id: ${productID}) { title media(first: 5) { edges { node { ...fieldsForMediaTypes } } } } } fragment fieldsForMediaTypes on Media { alt mediaContentType preview { image { id altText originalSrc } } status ... on Video { id sources { format height mimeType url width } originalSource { format height mimeType url width } } ... on ExternalVideo { id host embeddedUrl } ... on Model3d { sources { format mimeType url } originalSource { format mimeType url } } ... on MediaImage { id image { altText originalSrc } } }`,
         });
         aggregate.push({
           ...product,
@@ -71,48 +74,74 @@ app.get("/products", async (req, res) => {
     // console.log(products[0].price);
     res.json(productAggregate);
   } catch (error) {
+    res.json(error);
     console.log(error);
   }
 });
 app.post("/checkout", async (req, res) => {
-  let jsonBody = req.body;
-  const id = jsonBody.id;
-  let checkout = await client.checkout.create();
-  const lineItemsToAdd = [
-    {
-      variantId: id,
-      quantity: 1,
-    },
-  ];
+  try {
+    let jsonBody = req.body;
+    const id = jsonBody.id;
+    let checkout = await client.checkout.create();
+    const lineItemsToAdd = [
+      {
+        variantId: id,
+        quantity: 1,
+      },
+    ];
 
-  client.checkout.addLineItems(checkout.id, lineItemsToAdd).then((checkout) => {
-    // Do something with the updated checkout
-    console.log(checkout.lineItems); // Array with one additional line item
-  });
-  res.json(checkout);
+    let addLine = await client.checkout.addLineItems(
+      checkout.id,
+      lineItemsToAdd
+    );
+    let newCheckout = await client.checkout.fetch(checkout.id);
+    res.json(newCheckout);
+  } catch (error) {
+    res.json(error);
+    console.log(error);
+  }
 });
 
 app.post("/checkout/complete", async (req, res) => {
-  const { id, billingAddress } = req.body;
+  const { id, cardDetail, billingAddress, wallet, product, size } = req.body;
+  console.log(cardDetail);
   let checkout = await client.checkout.fetch(id);
+  // const vault = await fetch("https://elb.deposit.shopifycs.com/sessions", {
+  //   method: "POST",
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //   },
+  //   body: JSON.stringify({
+  //     credit_card: {
+  //       number: "4242424242424242",
+  //       first_name: "John",
+  //       last_name: "Smith",
+  //       month: "5",
+  //       year: "2025",
+  //       verification_value: "123",
+  //     },
+  //   }),
+  // });
+  // let vaultid = await vault.json();
+  let cardDate = cardDetail.date?.split("/");
 
   const token = await stripe.tokens.create({
     card: {
-      number: "4242424242424242",
-      exp_month: 11,
-      exp_year: 2023,
-      cvc: "314",
+      number: cardDetail.number?.split(" ").join(""),
+      exp_month: parseInt(cardDate[0]),
+      exp_year: parseInt(`20${cardDate[1]}`),
+      cvc: cardDetail.cvv,
     },
   });
-  let data = {
-    firstName: "John",
-    lastName: "Doe",
-    address1: "123 Test Street",
-    province: "Quebec",
-    country: "Canada",
-    city: "Montreal",
-    zip: "H3K0X2",
-  };
+  // let data = {
+  //   firstName: "John",
+  //   lastName: "Doe",
+  //   address1: "123 Test Street",
+  //   province: "Quebec",
+  //   country: "Canada",
+  //   city: "Montreal",
+  //   zip: "H3K0X2",
+  // };
 
   const variables = {
     checkoutId: id,
@@ -127,41 +156,93 @@ app.post("/checkout/complete", async (req, res) => {
       paymentData: token.id,
     },
   };
-  let shippingRates = await graphqlClient.query({
-    data: `query { node(id: "gid://shopify/Checkout/7e9b3511d30997c531a6413bc273885b?key=cc8d8812f127eaf51b3ac2468d467984") { ... on Checkout { id webUrl availableShippingRates { ready shippingRates { handle priceV2 { amount } title } } } } }`,
-  });
-  res.json(shippingRates);
-  // storeClient
-  //   .query({
-  //     data: {
-  //       query: `mutation checkoutShippingLineUpdate($checkoutId: ID!, $shippingRateHandle: String!) { checkoutShippingLineUpdate(checkoutId: $checkoutId, shippingRateHandle: $shippingRateHandle) { checkout { id } checkoutUserErrors { code field message } } }`,
-  //       variables: {
-  //         checkoutId: id,
-  //         shippingRateHandle: "custom",
-  //       },
+  // console.log(vaultid);
+  // const variables1 = {
+  //   checkoutId: id,
+  //   payment: {
+  //     paymentAmount: {
+  //       amount: checkout.paymentDue,
+  //       currencyCode: checkout.currencyCode,
   //     },
-  //   })
-  //   .then((data) => res.json([data]));
+  //     idempotencyKey: "123",
+  //     billingAddress: billingAddress,
+  //     vaultId: vaultid.id,
+  //   },
+  // };
+  let shippingRates = await storeClient.query({
+    data: {
+      query: `query queryCheckout($checkoutId:ID!) { node(id: $checkoutId) { ... on Checkout { id webUrl availableShippingRates { ready shippingRates { handle priceV2 { amount } title } } } } }`,
+      variables: {
+        checkoutId: id,
+      },
+    },
+  });
+  // res.json(
+  //   shippingRates.body.data.node.availableShippingRates.shippingRates[0]
+  //   );
+  console.log(
+    shippingRates.body.data.node.availableShippingRates.shippingRates
+  );
+
+  const shippingLine = await storeClient.query({
+    data: {
+      query: `mutation checkoutShippingLineUpdate($checkoutId: ID!, $shippingRateHandle: String!) { checkoutShippingLineUpdate(checkoutId: $checkoutId, shippingRateHandle: $shippingRateHandle) { checkout { id } checkoutUserErrors { code field message } } }`,
+      variables: {
+        checkoutId: id,
+        shippingRateHandle:
+          shippingRates.body.data.node.availableShippingRates.shippingRates[0]
+            .handle,
+      },
+    },
+  });
 
   // storeClient
   //   .query({
   //     data: {
-  //       query: `mutation checkoutCompleteWithTokenizedPaymentV3( $checkoutId: ID! $payment: TokenizedPaymentInputV3! ) { checkoutCompleteWithTokenizedPaymentV3( checkoutId: $checkoutId payment: $payment ) { checkout { id } checkoutUserErrors { code field message } payment { id } } } `,
-  //       variables: variables,
+  //       query: `mutation checkoutCompleteWithCreditCardV2($checkoutId: ID!, $payment: CreditCardPaymentInputV2!) { checkoutCompleteWithCreditCardV2(checkoutId: $checkoutId, payment: $payment) { checkout { id } checkoutUserErrors { code field message } payment { id } } }`,
+  //       variables: variables1,
   //     },
   //   })
   //   .then((data) => res.json([data]));
+  const completeOrder = await storeClient.query({
+    data: {
+      query: `mutation checkoutCompleteWithTokenizedPaymentV3($checkoutId: ID!, $payment: TokenizedPaymentInputV3!) { checkoutCompleteWithTokenizedPaymentV3(checkoutId: $checkoutId, payment: $payment) { checkout { id } checkoutUserErrors { code field message } payment { id } } }`,
+      variables: variables,
+    },
+  });
+  console.log(
+    completeOrder.body.data.checkoutCompleteWithTokenizedPaymentV3
+      .checkoutUserErrors
+  );
+  if (
+    completeOrder.body.data.checkoutCompleteWithTokenizedPaymentV3
+      .checkoutUserErrors.length === 0
+  ) {
+    console.log("successful");
+    mintWallet(product, wallet, size);
+    res.json("successful");
+  } else {
+    console.log("oops");
+    res.json(
+      completeOrder.body.data.checkoutCompleteWithTokenizedPaymentV3
+        .checkoutUserErrors
+    );
+  }
 });
 
 app.post("/checkout/update", async (req, res) => {
   const { address, id, email } = req.body;
-  console.log(email);
-  const input = { customAttributes: [{ key: "email", value: email }] };
+  console.log(address);
+  console.log(id);
   try {
     let updateAddress = await client.checkout.updateShippingAddress(
       id,
       address
     );
+  } catch (error) {
+    console.log(error);
+  }
+  try {
     let updateEmail = await storeClient.query({
       data: {
         query: `mutation checkoutEmailUpdateV2($checkoutId: ID!, $email: String!) { checkoutEmailUpdateV2(checkoutId: $checkoutId, email: $email) { checkout { id } checkoutUserErrors { code field message } } }`,
@@ -176,6 +257,7 @@ app.post("/checkout/update", async (req, res) => {
     res.status(200);
   } catch (error) {
     res.json(error);
+    console.log(error);
     res.status(400);
   }
 });

@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    “start”: “node index.js”
   },
   "repository": {
     "type": "git",
@@ -18,7 +19,9 @@
   },
   "homepage": "https://github.com/FamillyLYX/shopifyWeb3Backend#readme",
   "dependencies": {
+    "@pinata/sdk": "^2.1.0",
     "@shopify/shopify-api": "^5.2.0",
+    "axios": "^1.2.1",
     "babel-plugin-graphql-js-client-transform": "^1.1.1",
     "cors": "^2.8.5",
     "cross-fetch": "^3.1.5",
@@ -29,6 +32,7 @@
     "node-fetch": "^3.3.0",
     "request-promise": "^4.2.6",
     "shopify-buy": "^2.16.1",
-    "stripe": "^11.0.0"
+    "stripe": "^11.0.0",
+    "web3": "^1.8.1"
   }
 }
