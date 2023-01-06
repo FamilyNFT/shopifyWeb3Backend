@@ -140,4 +140,4 @@ export const mintWallet = async (product, minter, size) => {
     console.log(error);
   }
 };
-mintWallet("Beige", "0x802d7BE7BB8C8172C862Dd6701c38dc4056b850d", "L");
+// mintWallet("Beige", "0x802d7BE7BB8C8172C862Dd6701c38dc4056b850d", "L");
