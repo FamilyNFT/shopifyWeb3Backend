@@ -113,6 +113,46 @@ app.post("/checkout", async (req, res) => {
   }
 });
 
+app.patch("/checkout/email", async (req, res) => {
+  const { id, email } = req.body;
+
+  try {
+    let updateEmail = await storeClient.query({
+      data: {
+        query: `mutation checkoutEmailUpdateV2($checkoutId: ID!, $email: String!) { checkoutEmailUpdateV2(checkoutId: $checkoutId, email: $email) { checkout { id } checkoutUserErrors { code field message } } }`,
+        variables: {
+          checkoutId: id,
+          email: email,
+        },
+      },
+    });
+    let checkout = await client.checkout.fetch(id);
+    res.json(checkout);
+    res.status(200);
+  } catch (error) {
+    res.json(error);
+    console.log(error);
+    res.status(400);
+  }
+});
+
+app.patch("/checkout/address", async (req, res) => {
+  const { address, id } = req.body;
+  console.log(address);
+  console.log(id);
+  try {
+    let updateAddress = await client.checkout.updateShippingAddress(
+      id,
+      address
+    );
+    let checkout = await client.checkout.fetch(id);
+    res.status(200).json(checkout);
+    // res.status(200);
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 app.post("/checkout/complete", async (req, res) => {
   const { id, cardDetail, billingAddress, wallet, product, size } = req.body;
   console.log(cardDetail);
@@ -240,37 +280,4 @@ app.post("/checkout/complete", async (req, res) => {
     );
   }
 });
-
-app.post("/checkout/update", async (req, res) => {
-  const { address, id, email } = req.body;
-  console.log(address);
-  console.log(id);
-  try {
-    let updateAddress = await client.checkout.updateShippingAddress(
-      id,
-      address
-    );
-  } catch (error) {
-    console.log(error);
-  }
-  try {
-    let updateEmail = await storeClient.query({
-      data: {
-        query: `mutation checkoutEmailUpdateV2($checkoutId: ID!, $email: String!) { checkoutEmailUpdateV2(checkoutId: $checkoutId, email: $email) { checkout { id } checkoutUserErrors { code field message } } }`,
-        variables: {
-          checkoutId: id,
-          email: email,
-        },
-      },
-    });
-    let checkout = await client.checkout.fetch(id);
-    res.json(checkout);
-    res.status(200);
-  } catch (error) {
-    res.json(error);
-    console.log(error);
-    res.status(400);
-  }
-});
-
 app.listen(PORT, () => console.log("App is listening at port 8080"));
