@@ -34,16 +34,16 @@ export const mintWallet = async (product, minter, size) => {
   try {
     // const contract = new web3.eth.Contract(
     //   abi.abi,
-    //   "0xCD8316EDF82Bb3De7142b73C9Ece6a8171ce4C11",
+    //   "0x353AF3A24A39031DA7c99155f5e9f7Bf09A3C55E",
     //   { gas: 5_000_000, gasPrice: "1000000000" }
     // );
     // const contract = new web3.eth.Contract(
     //   abi.abi,
-    //   "0x450a0461D584449386e008afa848d76217dC9e91"
+    //   "0x353AF3A24A39031DA7c99155f5e9f7Bf09A3C55E"
     //   // { gas: 5_000_000, gasPrice: "1000000000" }
     // );
     let contract = new ethers.Contract(
-      "0x99e6e48Fb48841cb39e7fe5fbE16d42e8a928118",
+      "0x353AF3A24A39031DA7c99155f5e9f7Bf09A3C55E",
       abi.abi,
       signer
     );
