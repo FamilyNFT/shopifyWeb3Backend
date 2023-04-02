@@ -157,7 +157,8 @@ app.post("/checkout/complete", async (req, res) => {
   } catch (error) {
     console.error(`Error in /checkout/complete: ${error}`);
     return res.status(500).json({
-      message: "Error fetching shipping rates",
+      message:
+        "Error fetching shipping rates, check your shipping address is valid",
       error: error.message,
     });
   }
