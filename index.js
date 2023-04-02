@@ -111,48 +111,64 @@ app.post("/checkout/complete", async (req, res) => {
 
     const token = await createStripeToken(cardDetail);
     console.log("Stripe token created successfully");
-    // console.log(token);
 
-    const shippingRates = await fetchShippingRates(id);
-    console.log("Shipping rates retrieved successfully");
-
-    const shippingLine = await updateShippingLine(id, shippingRates[0].handle);
-    console.log("Shipping line updated successfully");
-
-    const completeOrder = await completeOrderWithTokenizedPayment(
-      id,
-      token.id,
-      checkout,
-      billingAddress
-    );
-    console.log("complete order called, checking for errors");
-    const errorCount = completeOrder.checkoutUserErrors?.length || 0;
-    console.log("errors: ", completeOrder.checkoutUserErrors?.length || 0);
-    if (errorCount === 0) {
-      console.log("Order placed successfully");
-      mintWallet(product, wallet, size);
-      return res.json("success");
-      // return res.json({ message: "success" });
-    } else {
-      console.log(completeOrder.checkoutUserErrors);
-      if (completeOrder.checkoutUserErrors) {
-        console.log(
-          completeOrder.checkoutUserErrors.map((err) => err.message).join(", ")
-        );
+    try {
+      const shippingRates = await fetchShippingRates(id);
+      if (!shippingRates || shippingRates.length === 0) {
+        return res.status(400).json({
+          message: "No shipping rates available",
+          error: "Please check your shipping address is valid",
+        });
       }
+      console.log("Shipping rates retrieved successfully");
 
-      return res.status(500).json({
-        message: "Order placement failed",
-        errors: devbool
-          ? completeOrder.checkoutUserErrors
+      const shippingLine = await updateShippingLine(
+        id,
+        shippingRates[0].handle
+      );
+      console.log("Shipping line updated successfully");
+
+      const completeOrder = await completeOrderWithTokenizedPayment(
+        id,
+        token.id,
+        checkout,
+        billingAddress
+      );
+      console.log("complete order called, checking for errors");
+      const errorCount = completeOrder.checkoutUserErrors?.length || 0;
+      console.log("errors: ", errorCount);
+      if (errorCount === 0) {
+        console.log("Order placed successfully");
+        mintWallet(product, wallet, size);
+        return res.json("success");
+      } else {
+        if (completeOrder.checkoutUserErrors) {
+          console.log(
+            completeOrder.checkoutUserErrors
               .map((err) => err.message)
               .join(", ")
-          : "Order placement failed", // if devbool is true, return the error message from Shopify, otherwise return a generic error message
+          );
+        }
+
+        return res.status(500).json({
+          message: "Order placement failed",
+          errors: completeOrder.checkoutUserErrors
+            ? completeOrder.checkoutUserErrors
+                .map((err) => err.message)
+                .join(", ")
+            : completeOrder.errors, // Include GraphQL errors in the response
+        });
+      }
+    } catch (error) {
+      console.error(`Error in /checkout/complete: ${error}`);
+      return res.status(500).json({
+        message: "Error completing checkout",
+        error: `Error: ${error.message}`,
       });
     }
   } catch (error) {
     console.error(`Error in /checkout/complete: ${error}`);
-    return handleError(error, res);
+    return handleError(error, res, true);
   }
 });
 

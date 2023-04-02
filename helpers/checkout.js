@@ -91,7 +91,6 @@ async function createStripeToken(cardDetail) {
     console.log("error");
   }
 }
-
 const fetchShippingRates = async (id) => {
   try {
     let shippingRates = null;
@@ -105,6 +104,13 @@ const fetchShippingRates = async (id) => {
           },
         },
       });
+      if (shippingRatesResponse.body.errors) {
+        throw new Error(
+          `GraphqlQueryError: ${shippingRatesResponse.body.errors
+            .map((err) => err.message)
+            .join(", ")}`
+        );
+      }
 
       const { node } = shippingRatesResponse.body.data;
       if (node) {
@@ -126,7 +132,7 @@ const fetchShippingRates = async (id) => {
 
     return shippingRates;
   } catch (error) {
-    console.error("Error in fetchShippingRates: ", error);
+    console.error(`Error in fetchShippingRates: ${error.message}`);
     throw error;
   }
 };
@@ -180,13 +186,13 @@ const completeOrderWithTokenizedPayment = async (
   return completeOrder;
 };
 
-const handleError = (error, res) => {
+function handleError(error, res, includeErrorMessage = false) {
   console.error(error);
   return res.status(500).json({
-    message: "An error occurred while processing the order",
-    error: error.message,
+    message: "Internal server error",
+    ...(includeErrorMessage ? { error: error.message } : {}),
   });
-};
+}
 
 export {
   validateCardDetails,
