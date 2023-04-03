@@ -134,9 +134,19 @@ app.post("/checkout/complete", async (req, res) => {
     const errorCount = completeOrder.checkoutUserErrors?.length || 0;
     console.log("errors: ", errorCount);
     if (errorCount === 0) {
-      console.log("Order placed successfully");
-      mintWallet(product, wallet, size);
-      return res.json("success");
+      console.log("Order created, minting...");
+      //we should be taking the payment before we mint the wallet so we can refund if the mint fails
+      //for now we will just mint the wallet and if it fails we will refund the user manually
+      //best practice would be to have a refund function that the backend can call if the mint fails
+
+      try {
+        mintWallet(product, wallet, size);
+        return res.json("success");
+      } catch (error) {
+        console.error("Error while minting the product:", error);
+        return res.status(500).json({ error: "Order placement failed" });
+      }
+
       // return res.json({ message: "success" });
     } else {
       if (completeOrder.checkoutUserErrors) {

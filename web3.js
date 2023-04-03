@@ -1,5 +1,8 @@
 import Web3 from "web3";
-import abi from "./abi/familynft.json" assert { type: "json" };
+import fs from "fs";
+const abiFile = JSON.parse(fs.readFileSync("./abi/familynft.json"));
+const abi = abiFile.abi;
+
 import dotenv from "dotenv";
 import { File, Web3Storage } from "web3.storage";
 import { ethers } from "ethers";
