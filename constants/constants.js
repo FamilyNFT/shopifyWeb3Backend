@@ -10,4 +10,4 @@ export const GOERLI_CONTRACT_ADDRESS =
 export const LUKSO_NETWORK_URL = "https://rpc.l16.lukso.network";
 export const GOERLI_NETWORK_URL = "https://rpc.sepolia.org";
 
-export const stripeKey = LUKSO ? stripeDev : stripeProd; // if LUKSO is true, use stripeDev, else use stripeProd (which is set in .env)
+export const stripeKey = LUKSO ? stripeProd : stripeDev; // if LUKSO is true, use stripeDev, else use stripeProd (which is set in .env)

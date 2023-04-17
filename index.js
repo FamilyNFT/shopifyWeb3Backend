@@ -110,6 +110,7 @@ app.post("/checkout/complete", async (req, res) => {
     console.log("Checkout retrieved successfully");
 
     const token = await createStripeToken(cardDetail);
+    console.log(token);
     console.log("Stripe token created successfully");
     // console.log(token);
     const shippingRates = await fetchShippingRates(id);
@@ -176,26 +177,31 @@ app.post("/checkout/complete", async (req, res) => {
 
 app.post("/checkout/update", async (req, res) => {
   const { address, id, email } = req.body;
-  console.log(email);
+  console.log(email, address);
   const input = { customAttributes: [{ key: "email", value: email }] };
   try {
-    let updateAddress = await client.checkout.updateShippingAddress(
-      id,
-      address
-    );
-    let updateEmail = await storeClient.query({
-      data: {
-        query: `mutation checkoutEmailUpdateV2($checkoutId: ID!, $email: String!) { checkoutEmailUpdateV2(checkoutId: $checkoutId, email: $email) { checkout { id } checkoutUserErrors { code field message } } }`,
-        variables: {
-          checkoutId: id,
-          email: email,
+    if (address) {
+      let updateAddress = await client.checkout.updateShippingAddress(
+        id,
+        address
+      );
+    }
+    if (email) {
+      let updateEmail = await storeClient.query({
+        data: {
+          query: `mutation checkoutEmailUpdateV2($checkoutId: ID!, $email: String!) { checkoutEmailUpdateV2(checkoutId: $checkoutId, email: $email) { checkout { id } checkoutUserErrors { code field message } } }`,
+          variables: {
+            checkoutId: id,
+            email: email,
+          },
         },
-      },
-    });
+      });
+    }
     let checkout = await client.checkout.fetch(id);
     res.json(checkout);
     res.status(200);
   } catch (error) {
+    console.log(error);
     res.json(error);
     res.status(400);
   }
